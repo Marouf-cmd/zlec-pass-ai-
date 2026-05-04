@@ -9,6 +9,9 @@ from qr_utils import generer_qr
 import database
 from PIL import Image
 import tempfile
+from qr_utils import decode_qr, verifier_certificat
+import io
+
 
 
 # Initialiser la base de données
@@ -103,7 +106,31 @@ if mode == t.get("trader_mode", "Commerçant"):
                 st.download_button("Télécharger le QR Code", data=qr_data, file_name="certificat.png", mime="image/png")
 elif mode == t.get("customs_mode", "Douane"):
     st.header(t.get("customs_mode", "Douane"))
-    st.write("Interface douane en construction...")
+    uploaded_qr = st.file_uploader("Scanner le QR Code (image)", type=["png", "jpg", "jpeg"])
+    if uploaded_qr is not None:
+        st.image(uploaded_qr, caption="QR du commerçant", width=400)
+        if st.button("Vérifier le certificat"):
+            # Sauver temporairement
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_qr:
+                tmp_qr.write(uploaded_qr.getvalue())
+                tmp_qr_path = tmp_qr.name
+            try:
+                payload = decode_qr(tmp_qr_path)
+                valide, donnees = verifier_certificat(payload)
+                if valide:
+                    st.success("✅ Certificat authentique. Signature vérifiée.")
+                    st.json(donnees)
+                    # Conseils IA
+                    if st.button("Obtenir les points de contrôle"):
+                        from rag_engine import repondre_question
+                        question = f"Quels sont les points de contrôle pour un lot de {donnees.get('produit')} grade {donnees.get('grade')} en provenance de {donnees.get('origine')} ?"
+                        reponse = repondre_question(question)
+                        st.markdown(reponse)
+                else:
+                    st.error("❌ Signature invalide. Ce QR code a peut-être été falsifié.")
+            except Exception as e:
+                st.error(f"Impossible de décoder le QR code : {e}")
+
 else:
     st.header(t.get("institution_mode", "Institution"))
     st.write("Tableau de bord en construction...")
