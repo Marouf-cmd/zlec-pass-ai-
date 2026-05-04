@@ -2,24 +2,31 @@ import json
 import os
 import config
 import rag_engine  # on utilise l'IA pour extraire les données une fois
+import google.generativeai as genai
 
 CHEMIN_TARIFS = os.path.join(config.CACHE_DIR, "tarifs.json")
 
 def _extraire_et_sauvegarder():
-    # extraire le texte complet des PDF (on peut utiliser rag_engine._extraire_texte_pdfs ou directement)
     texte = rag_engine._extraire_texte_pdfs(config.DATA_DIR)
-    prompt = f"""À partir du texte réglementaire suivant, extrais les droits de douane standards et préférentiels pour les produits agricoles : café, cacao, céréales.
-    Retourne uniquement un JSON de la forme :
-    {{"cafe": {{"standard": 20, "A_B": 0, "C": 5}}, ...}}
-    Si une valeur n'est pas trouvée, mets 0.
-    Texte : {texte[:15000]}"""
+    # Si aucun texte trouvé, on prend directement les valeurs par défaut
+    if not texte.strip():
+        tarifs = {
+            "cafe": {"standard": 20, "A_B": 0, "C": 5},
+            "cacao": {"standard": 15, "A_B": 0, "C": 3},
+            "cereales": {"standard": 10, "A_B": 0, "C": 2},
+        }
+        with open(CHEMIN_TARIFS, "w") as f:
+            json.dump(tarifs, f)
+        return tarifs
+
+    # Sinon, on interroge l'IA
     genai.configure(api_key=config.API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('models/gemini-1.5-flash')
+    prompt = f"""À partir du texte réglementaire suivant, extrais les droits de douane... (le reste du prompt)"""
     reponse = model.generate_content(prompt)
     try:
         tarifs = json.loads(reponse.text)
     except:
-        # Valeurs par défaut
         tarifs = {
             "cafe": {"standard": 20, "A_B": 0, "C": 5},
             "cacao": {"standard": 15, "A_B": 0, "C": 3},

@@ -50,44 +50,57 @@ if mode == t.get("trader_mode", "Commerçant"):
         image = Image.open(uploaded_file)
         st.image(image, caption="Produit photographié", use_container_width=True)
         
+        # Bouton d'analyse – indépendant, ne contient pas le QR bouton
         if st.button(t.get("analyze", "Analyser la qualité")):
             with st.spinner("Analyse IA en cours..."):
                 resultat = analyze_product(tmp_path)
                 if resultat:
                     st.session_state.analyse = resultat
-                    produit = resultat["produit"]
-                    grade = resultat["grade"]
-                    st.success(f"Produit : {produit} | Grade : {grade}")
-                    
-                    # Simulation
-                    simulation = simuler_tarif(produit, grade, origine, destination)
-                    st.info(simulation)
-                    
-                    # Génération QR
-                    if st.button(t.get("generate_qr", "Générer le QR Code")):
-                        donnees_cert = {
-                            "commercant": nom_commercant,
-                            "produit": produit,
-                            "grade": grade,
-                            "origine": origine,
-                            "destination": destination,
-                            "economie": simulation
-                        }
-                        chemin_qr = generer_qr(donnees_cert)
-                        st.image(chemin_qr, caption="QR Code de certification", width=300)
-                        with open(chemin_qr, "rb") as f:
-                            qr_data = f.read()
-                        st.download_button("Télécharger le QR Code", data=qr_data, file_name="certificat.png", mime="image/png")
-                        # Enregistrer en base
-                        if nom_commercant:
-                            database.enregistrer_certification(
-                                nom_commercant, produit, grade, origine, destination,
-                                simulation, ""  # signature pas stockée
-                            )
-                            st.success(f"Score de confiance de {nom_commercant} mis à jour.")
+                    # On efface l'ancienne simulation et QR pour éviter les mélanges
+                    st.session_state.simulation = None
+                    st.session_state.qr_path = None
                 else:
                     st.error("Échec de l'analyse. Réessayez.")
-
+        
+        # Si une analyse existe, on affiche ses résultats et on propose la simulation + QR
+        if "analyse" in st.session_state and st.session_state.analyse is not None:
+            resultat = st.session_state.analyse
+            produit = resultat["produit"]
+            grade = resultat["grade"]
+            st.success(f"Produit : {produit} | Grade : {grade}")
+            
+            # Simulation (on ne la calcule qu'une fois si elle n'existe pas déjà)
+            if "simulation" not in st.session_state or st.session_state.simulation is None:
+                st.session_state.simulation = simuler_tarif(produit, grade, origine, destination)
+            simulation = st.session_state.simulation
+            st.info(simulation)
+            
+            # Bouton pour générer le QR code – complètement indépendant
+            if st.button(t.get("generate_qr", "Générer le QR Code")):
+                donnees_cert = {
+                    "commercant": nom_commercant,
+                    "produit": produit,
+                    "grade": grade,
+                    "origine": origine,
+                    "destination": destination,
+                    "economie": simulation
+                }
+                chemin_qr = generer_qr(donnees_cert)
+                st.session_state.qr_path = chemin_qr
+                # Enregistrer en base
+                if nom_commercant:
+                    database.enregistrer_certification(
+                        nom_commercant, produit, grade, origine, destination,
+                        simulation, ""  # signature pas stockée
+                    )
+                    st.success(f"Score de confiance de {nom_commercant} mis à jour.")
+            
+            # Affichage du QR code s'il a été généré
+            if "qr_path" in st.session_state and st.session_state.qr_path is not None:
+                st.image(st.session_state.qr_path, caption="QR Code de certification", width=300)
+                with open(st.session_state.qr_path, "rb") as f:
+                    qr_data = f.read()
+                st.download_button("Télécharger le QR Code", data=qr_data, file_name="certificat.png", mime="image/png")
 elif mode == t.get("customs_mode", "Douane"):
     st.header(t.get("customs_mode", "Douane"))
     st.write("Interface douane en construction...")

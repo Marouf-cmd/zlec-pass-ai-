@@ -1,13 +1,13 @@
 import os
 import glob
-from pypdf import PdfReader
+from PyPDF2 import PdfReader
 import chromadb
 from chromadb.utils import embedding_functions
 import google.generativeai as genai
 import config
 
 genai.configure(api_key=config.API_KEY)
-model_texte = genai.GenerativeModel('gemini-1.5-flash')
+model_texte = genai.GenerativeModel('models/gemini-2.5-flash')
 
 # Initialisation ChromaDB
 chroma_client = chromadb.PersistentClient(path="vectordb")
@@ -19,7 +19,7 @@ def _extraire_texte_pdfs(dossier="data"):
     for fichier in os.listdir(dossier):
         if fichier.endswith(".pdf"):
             chemin = os.path.join(dossier, fichier)
-            reader = PdfReader(chemin)
+            reader = PyPDF2.PdfReader(chemin)
             for page in reader.pages:
                 texte = page.extract_text()
                 if texte:

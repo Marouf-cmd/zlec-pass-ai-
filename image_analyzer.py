@@ -6,7 +6,7 @@ from PIL import Image
 import config
 
 genai.configure(api_key=config.API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('models/gemini-2.5-flash')
 
 def _hash_image(chemin_image: str) -> str:
     with open(chemin_image, "rb") as f:
