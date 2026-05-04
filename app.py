@@ -151,4 +151,23 @@ elif mode == t.get("customs_mode", "Douane"):
                     st.error("❌ Signature invalide. Ce QR code a peut-être été falsifié.")
 else:
     st.header(t.get("institution_mode", "Institution"))
-    st.write("Tableau de bord en construction...")
+    st.subheader("Statistiques générales")
+    certifs = database.get_certifications()
+    if certifs:
+        st.write(f"Nombre total de certifications : {len(certifs)}")
+        # Graphique produits
+        prod_counts = {}
+        for c in certifs:
+            prod_counts[c[0]] = prod_counts.get(c[0], 0) + 1
+        st.bar_chart(prod_counts)
+        # Top commerçants
+        st.subheader("Top commerçants (ZLEC-Score)")
+        top = database.get_top_commercants(10)
+        for nom, score in top:
+            st.write(f"{nom} : {score} passage(s) certifié(s)")
+        # Dernières certifications
+        st.subheader("Dernières certifications")
+        for c in certifs[:20]:
+            st.write(f"{c[6]} - {c[0]} grade {c[1]} de {c[2]} vers {c[3]} (le {c[5][:10]})")
+    else:
+        st.info("Aucune donnée pour le moment.")
