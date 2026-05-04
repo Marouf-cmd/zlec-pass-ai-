@@ -109,28 +109,46 @@ elif mode == t.get("customs_mode", "Douane"):
     uploaded_qr = st.file_uploader("Scanner le QR Code (image)", type=["png", "jpg", "jpeg"])
     if uploaded_qr is not None:
         st.image(uploaded_qr, caption="QR du commerçant", width=400)
+        
+        # Bouton de vérification (indépendant)
         if st.button("Vérifier le certificat"):
-            # Sauver temporairement
+            # Sauvegarder temporairement
             with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_qr:
                 tmp_qr.write(uploaded_qr.getvalue())
                 tmp_qr_path = tmp_qr.name
             try:
                 payload = decode_qr(tmp_qr_path)
                 valide, donnees = verifier_certificat(payload)
-                if valide:
+                st.session_state.verification_result = {
+                    "valide": valide,
+                    "donnees": donnees,
+                    "payload": payload
+                }
+            except Exception as e:
+                st.session_state.verification_result = {"error": str(e)}
+        
+        # Affichage persistant du résultat de vérification
+        if "verification_result" in st.session_state and st.session_state.verification_result is not None:
+            result = st.session_state.verification_result
+            if "error" in result:
+                st.error(f"Impossible de décoder le QR code : {result['error']}")
+            else:
+                if result["valide"]:
                     st.success("✅ Certificat authentique. Signature vérifiée.")
-                    st.json(donnees)
-                    # Conseils IA
+                    st.json(result["donnees"])
+                    
+                    # Bouton pour obtenir les points de contrôle – en dehors du if valide
                     if st.button("Obtenir les points de contrôle"):
                         from rag_engine import repondre_question
-                        question = f"Quels sont les points de contrôle pour un lot de {donnees.get('produit')} grade {donnees.get('grade')} en provenance de {donnees.get('origine')} ?"
-                        reponse = repondre_question(question)
-                        st.markdown(reponse)
+                        question = f"Quels sont les points de contrôle pour un lot de {result['donnees'].get('produit', 'produit')} grade {result['donnees'].get('grade', 'inconnu')} en provenance de {result['donnees'].get('origine', 'pays inconnu')} ?"
+                        with st.spinner("Recherche en cours..."):
+                            reponse = repondre_question(question)
+                        st.session_state.controle_reponse = reponse
+                    
+                    if "controle_reponse" in st.session_state and st.session_state.controle_reponse is not None:
+                        st.markdown(st.session_state.controle_reponse)
                 else:
                     st.error("❌ Signature invalide. Ce QR code a peut-être été falsifié.")
-            except Exception as e:
-                st.error(f"Impossible de décoder le QR code : {e}")
-
 else:
     st.header(t.get("institution_mode", "Institution"))
     st.write("Tableau de bord en construction...")
