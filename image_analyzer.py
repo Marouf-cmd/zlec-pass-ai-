@@ -4,6 +4,7 @@ import os
 import google.generativeai as genai
 from PIL import Image
 import config
+from logger import logger
 
 genai.configure(api_key=config.API_KEY)
 model = genai.GenerativeModel('models/gemini-2.5-flash')
@@ -40,7 +41,7 @@ def analyze_product(chemin_image: str) -> dict:
     response = model.generate_content([prompt, img])
     try:
         resultat = json.loads(response.text)
-    except:
+    except Exception as e:
+        logger.error(f"Erreur parsing réponse Gemini : {e}")
         resultat = {"produit": "inconnu", "grade": "C"}
-    _cache_set(h, resultat)
     return resultat

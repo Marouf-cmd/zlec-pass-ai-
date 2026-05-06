@@ -1,6 +1,7 @@
 import sqlite3
 import os
 from datetime import datetime
+from logger import logger
 
 DB_NAME = "zlecaf.db"
 
@@ -39,7 +40,7 @@ def ajouter_commercant(nom):
         c.execute("INSERT OR IGNORE INTO commercants (nom) VALUES (?)", (nom,))
         conn.commit()
     except Exception as e:
-        pass
+        logger.error(f"Erreur base de données : {e}")
     finally:
         conn.close()
 

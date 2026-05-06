@@ -3,6 +3,7 @@ import os
 import config
 import rag_engine  # on utilise l'IA pour extraire les données une fois
 import google.generativeai as genai
+from logger import logger
 
 CHEMIN_TARIFS = os.path.join(config.CACHE_DIR, "tarifs.json")
 
@@ -32,6 +33,8 @@ def _extraire_et_sauvegarder():
             "cacao": {"standard": 15, "A_B": 0, "C": 3},
             "cereales": {"standard": 10, "A_B": 0, "C": 2},
         }
+        logger.error(f"Erreur parsing tarifs IA : {e}")
+        logger.info("Extraction des tarifs via l'IA effectuée avec succès.")
     with open(CHEMIN_TARIFS, "w") as f:
         json.dump(tarifs, f)
     return tarifs

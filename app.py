@@ -11,7 +11,7 @@ from PIL import Image
 import tempfile
 from qr_utils import decode_qr, verifier_certificat
 import io
-
+from logger import logger
 
 
 # Initialiser la base de données
@@ -54,16 +54,19 @@ if mode == t.get("trader_mode", "Commerçant"):
         st.image(image, caption="Produit photographié", use_container_width=True)
         
         # Bouton d'analyse – indépendant, ne contient pas le QR bouton
-        if st.button(t.get("analyze", "Analyser la qualité")):
-            with st.spinner("Analyse IA en cours..."):
-                resultat = analyze_product(tmp_path)
-                if resultat:
-                    st.session_state.analyse = resultat
-                    # On efface l'ancienne simulation et QR pour éviter les mélanges
-                    st.session_state.simulation = None
-                    st.session_state.qr_path = None
-                else:
-                    st.error("Échec de l'analyse. Réessayez.")
+    if st.button(t.get("analyze", "Analyser la qualité")):
+        with st.spinner("Analyse IA en cours..."):
+                try:
+                    resultat = analyze_product(tmp_path)
+                    if resultat:
+                        st.session_state.analyse = resultat
+                        st.session_state.simulation = None
+                        st.session_state.qr_path = None
+                    else:
+                        st.error("Échec de l'analyse. Réessayez.")
+                except Exception as e:
+                    logger.error(f"Erreur analyse produit : {e}")
+                    st.error("Une erreur est survenue pendant l'analyse. Veuillez réessayer.")
         
         # Si une analyse existe, on affiche ses résultats et on propose la simulation + QR
         if "analyse" in st.session_state and st.session_state.analyse is not None:
@@ -116,17 +119,17 @@ elif mode == t.get("customs_mode", "Douane"):
             with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_qr:
                 tmp_qr.write(uploaded_qr.getvalue())
                 tmp_qr_path = tmp_qr.name
-            try:
-                payload = decode_qr(tmp_qr_path)
-                valide, donnees = verifier_certificat(payload)
-                st.session_state.verification_result = {
-                    "valide": valide,
-                    "donnees": donnees,
-                    "payload": payload
-                }
-            except Exception as e:
-                st.session_state.verification_result = {"error": str(e)}
-        
+                try:
+                    payload = decode_qr(tmp_qr_path)
+                    valide, donnees = verifier_certificat(payload)
+                    st.session_state.verification_result = {
+                        "valide": valide,
+                        "donnees": donnees,
+                        "payload": payload
+                    }
+                except Exception as e:
+                    logger.error(f"Échec vérification QR : {e}")
+                    st.session_state.verification_result = {"error": str(e)}
         # Affichage persistant du résultat de vérification
         if "verification_result" in st.session_state and st.session_state.verification_result is not None:
             result = st.session_state.verification_result

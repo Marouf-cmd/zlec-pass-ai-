@@ -5,6 +5,7 @@ import chromadb
 from chromadb.utils import embedding_functions
 import google.generativeai as genai
 import config
+from logger import logger
 
 genai.configure(api_key=config.API_KEY)
 model_texte = genai.GenerativeModel('models/gemini-2.5-flash')
@@ -54,4 +55,10 @@ def repondre_question(question: str) -> str:
     Question : {question}
     Réponse :"""
     reponse = model_texte.generate_content(prompt)
+    try:
+        reponse = modele_texte.generate_content(prompt)
+        return reponse.text
+    except Exception as e:
+        logger.error(f"Erreur appel Gemini RAG : {e}")
+        return "Désolé, l'assistant juridique est momentanément indisponible."
     return reponse.text
