@@ -1,23 +1,24 @@
 import sqlite3
-import os
 from datetime import datetime
-from logger import logger
+import os
+from core.config import PROJECT_DIR
+from core.logger import logger
 
-DB_NAME = "zlecaf.db"
+# Chemin unique vers la base de données
+DB_NAME = os.path.join(PROJECT_DIR, "zlecaf.db")
 
 def get_db_path():
-    return os.path.join(os.path.dirname(__file__), DB_NAME)
+    """Retourne le chemin de la base de données (compatibilité)"""
+    return DB_NAME
 
 def init_db():
-    conn = sqlite3.connect(get_db_path())
+    conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    # Table des commerçants
     c.execute('''CREATE TABLE IF NOT EXISTS commercants (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         nom TEXT UNIQUE NOT NULL,
         score INTEGER DEFAULT 0
     )''')
-    # Table des certifications
     c.execute('''CREATE TABLE IF NOT EXISTS certifications (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         commercant_id INTEGER,
@@ -34,7 +35,7 @@ def init_db():
     conn.close()
 
 def ajouter_commercant(nom):
-    conn = sqlite3.connect(get_db_path())
+    conn = sqlite3.connect(DB_NAME)   # modifié
     c = conn.cursor()
     try:
         c.execute("INSERT OR IGNORE INTO commercants (nom) VALUES (?)", (nom,))
@@ -45,14 +46,14 @@ def ajouter_commercant(nom):
         conn.close()
 
 def incrementer_score(nom):
-    conn = sqlite3.connect(get_db_path())
+    conn = sqlite3.connect(DB_NAME)   # modifié
     c = conn.cursor()
     c.execute("UPDATE commercants SET score = score + 1 WHERE nom = ?", (nom,))
     conn.commit()
     conn.close()
 
 def enregistrer_certification(nom_commercant, produit, grade, origine, destination, economie, hash_signature):
-    conn = sqlite3.connect(get_db_path())
+    conn = sqlite3.connect(DB_NAME)   # modifié
     c = conn.cursor()
     # Récupérer l'id du commerçant (ou le créer)
     c.execute("SELECT id FROM commercants WHERE nom = ?", (nom_commercant,))
@@ -72,7 +73,7 @@ def enregistrer_certification(nom_commercant, produit, grade, origine, destinati
     incrementer_score(nom_commercant)
 
 def get_top_commercants(limit=10):
-    conn = sqlite3.connect(get_db_path())
+    conn = sqlite3.connect(DB_NAME)   # modifié
     c = conn.cursor()
     c.execute("SELECT nom, score FROM commercants ORDER BY score DESC LIMIT ?", (limit,))
     data = c.fetchall()
@@ -80,7 +81,7 @@ def get_top_commercants(limit=10):
     return data
 
 def get_certifications():
-    conn = sqlite3.connect(get_db_path())
+    conn = sqlite3.connect(DB_NAME)   # modifié
     c = conn.cursor()
     c.execute('''SELECT c.produit, c.grade, c.origine, c.destination, c.economie, c.horodatage, cm.nom
                  FROM certifications c JOIN commercants cm ON c.commercant_id = cm.id

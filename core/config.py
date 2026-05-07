@@ -4,9 +4,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
-CACHE_DIR = os.path.join(BASE_DIR, "cache")
-LOG_DIR = os.path.join(BASE_DIR, "logs")
+PROJECT_DIR = os.path.dirname(BASE_DIR)
+DATA_DIR = os.path.join(PROJECT_DIR, "data")
+CACHE_DIR = os.path.join(PROJECT_DIR, "cache")
+LOG_DIR = os.path.join(PROJECT_DIR, "logs")
 os.makedirs(CACHE_DIR, exist_ok=True)
 os.makedirs(LOG_DIR, exist_ok=True)
 
@@ -14,7 +15,6 @@ API_KEY = os.getenv("GOOGLE_API_KEY")
 if not API_KEY:
     raise ValueError("GOOGLE_API_KEY non trouvée dans .env")
 
-# Liste des pays ZLECAf (extrait exhaustif possible)
 PAYS_ZLECAF = [
     "Afrique du Sud", "Algérie", "Angola", "Bénin", "Botswana", "Burkina Faso", "Burundi",
     "Cameroun", "Cap-Vert", "République centrafricaine", "Comores", "Congo", "RD Congo",

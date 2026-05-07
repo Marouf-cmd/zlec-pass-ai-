@@ -1,14 +1,19 @@
 import json
 import os
-import config
-import rag_engine  # on utilise l'IA pour extraire les données une fois
+from core.config import PAYS_ZLECAF, DATA_DIR, API_KEY   # import explicite
+from core import rag_engine
 import google.generativeai as genai
-from logger import logger
+from core.logger import logger
+from pathlib import Path
 
-CHEMIN_TARIFS = os.path.join(config.CACHE_DIR, "tarifs.json")
+# Définir les chemins (utilise ceux de config ou les tiens)
+PROJECT_DIR = Path(__file__).resolve().parent.parent
+CACHE_DIR = os.path.join(PROJECT_DIR, "cache")
+os.makedirs(CACHE_DIR, exist_ok=True)
+CHEMIN_TARIFS = os.path.join(CACHE_DIR, "tarifs.json")
 
 def _extraire_et_sauvegarder():
-    texte = rag_engine._extraire_texte_pdfs(config.DATA_DIR)
+    texte = rag_engine._extraire_texte_pdfs(DATA_DIR)   # plus de config.
     # Si aucun texte trouvé, on prend directement les valeurs par défaut
     if not texte.strip():
         tarifs = {
@@ -21,20 +26,19 @@ def _extraire_et_sauvegarder():
         return tarifs
 
     # Sinon, on interroge l'IA
-    genai.configure(api_key=config.API_KEY)
-    model = genai.GenerativeModel('models/gemini-1.5-flash')
+    genai.configure(api_key=API_KEY)   # plus de config.
+    model_texte = genai.GenerativeModel('models/gemini-2.5-flash')
     prompt = f"""À partir du texte réglementaire suivant, extrais les droits de douane... (le reste du prompt)"""
     reponse = model.generate_content(prompt)
     try:
         tarifs = json.loads(reponse.text)
-    except:
+    except Exception as e:
         tarifs = {
             "cafe": {"standard": 20, "A_B": 0, "C": 5},
             "cacao": {"standard": 15, "A_B": 0, "C": 3},
             "cereales": {"standard": 10, "A_B": 0, "C": 2},
         }
         logger.error(f"Erreur parsing tarifs IA : {e}")
-        logger.info("Extraction des tarifs via l'IA effectuée avec succès.")
     with open(CHEMIN_TARIFS, "w") as f:
         json.dump(tarifs, f)
     return tarifs
@@ -48,7 +52,7 @@ def charger_tarifs():
 
 def simuler_tarif(produit: str, grade: str, origine: str, destination: str) -> str:
     # Vérifier que les deux pays sont ZLECAf
-    if origine not in config.PAYS_ZLECAF or destination not in config.PAYS_ZLECAF:
+    if origine not in PAYS_ZLECAF or destination not in PAYS_ZLECAF:   # plus de config.
         return "Un des pays n'est pas membre ZLECAf. Tarif standard non simulé."
     tarifs = charger_tarifs()
     prod = produit.lower().strip()

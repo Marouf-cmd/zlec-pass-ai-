@@ -3,8 +3,8 @@ import json
 import os
 import google.generativeai as genai
 from PIL import Image
-import config
-from logger import logger
+import core.config as config
+from core.logger import logger
 
 genai.configure(api_key=config.API_KEY)
 model = genai.GenerativeModel('models/gemini-2.5-flash')
