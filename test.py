@@ -1,3 +1,6 @@
-import cv2
-img = cv2.imread("dataset/train/cafe_A/01.jpg")
-print(img.shape)   # doit afficher (224, 224, 3)
+
+from training.model import build_model
+
+num_classes = 15  # à ajuster selon vos classes (café, cacao, céréales x 3)
+model = build_model(num_classes)
+model.summary()
