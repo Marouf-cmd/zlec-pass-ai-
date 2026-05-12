@@ -1,0 +1,15 @@
+cacao_A
+cacao_B
+cacao_C
+cafe_A
+cafe_B
+cafe_C
+mais_A
+mais_B
+mais_C
+mil_A
+mil_B
+mil_C
+sorgho_A
+sorgho_B
+sorgho_C

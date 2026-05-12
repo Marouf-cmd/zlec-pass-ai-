@@ -1,9 +1,14 @@
-venv/
-.env
+# Modèles TensorFlow (volumineux)
+*.h5
+*.hdf5
+*.ckpt
+
+# Dossier Python cache
 __pycache__/
 *.pyc
-.vscode/
-cache/
+
+# Environnement virtuel
+venv/
+
+# Fichiers logs
 logs/
-vectordb/
-static/qr_codes/
