@@ -1,14 +1,15 @@
-# Modèles TensorFlow (volumineux)
-*.h5
-*.hdf5
-*.ckpt
+# Dossiers de datasets (contenant des images)
+dataset_*/
 
-# Dossier Python cache
+# Fichiers de modèles
+*.h5
+*.tflite
+*.hdf5
+
+# Fichiers temporaires
 __pycache__/
 *.pyc
+*.log
 
 # Environnement virtuel
 venv/
-
-# Fichiers logs
-logs/
