@@ -13,3 +13,14 @@ __pycache__/
 
 # Environnement virtuel
 venv/
+
+# Fichiers sensibles
+.env
+*.env
+
+# Dossiers de cache et vectordb
+cache/
+vectordb/
+
+# Fichiers de logs
+logs/

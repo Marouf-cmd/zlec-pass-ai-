@@ -56,13 +56,12 @@ def initialiser_rag():
     ids = [f"p{i}" for i in range(len(paragraphes))]
     collection.add(documents=paragraphes, ids=ids)
     logger.info(f"Base vectorielle initialisée avec {len(paragraphes)} paragraphes")
-
 def repondre_question(question: str) -> str:
-    """Récupère le contexte et génère une réponse avec Gemini"""
-    results = collection.query(query_texts=[question], n_results=3)
-    contextes = results['documents'][0]
-    contexte_texte = "\n\n".join(contextes)
-    prompt = f"""Tu es un assistant juridique spécialiste des textes de la ZLECAf.
+    try:
+        results = collection.query(query_texts=[question], n_results=3)
+        contextes = results['documents'][0]
+        contexte_texte = "\n\n".join(contextes)
+        prompt = f"""Tu es un assistant juridique spécialiste des textes de la ZLECAf.
 Réponds à la question en te basant UNIQUEMENT sur les extraits suivants.
 Si la réponse ne s'y trouve pas, dis-le.
 
@@ -71,9 +70,9 @@ Extraits :
 
 Question : {question}
 Réponse :"""
-    try:
         reponse = model_texte.generate_content(prompt)
         return reponse.text
     except Exception as e:
-        logger.error(f"Erreur appel Gemini RAG : {e}")
-        return "Désolé, l'assistant juridique est momentanément indisponible."
+        # Affiche l'erreur détaillée dans les logs (et dans l'interface)
+        logger.error(f"Erreur complète : {e}", exc_info=True)
+        return f"Erreur technique : {type(e).__name__} – {str(e)}"
