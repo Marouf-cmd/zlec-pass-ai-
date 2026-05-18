@@ -24,3 +24,29 @@ vectordb/
 
 # Fichiers de logs
 logs/
+# Dossiers de datasets (contenant des images)
+dataset_*/
+
+# Fichiers de modèles
+*.h5
+*.tflite
+*.hdf5
+
+# Fichiers temporaires
+__pycache__/
+*.pyc
+*.log
+
+# Environnement virtuel
+venv/
+
+# Fichiers sensibles
+.env
+*.env
+
+# Dossiers de cache et vectordb
+cache/
+vectordb/
+
+# Fichiers de logs
+logs/
