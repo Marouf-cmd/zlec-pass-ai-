@@ -1,24 +1,28 @@
 import streamlit as st
 from core.style import inject_css
-inject_css()
+from core.theme_utils import theme_toggle
 from core.database import get_top_commercants, get_certifications
-from core.theme_utils import init_theme, theme_toggle
-init_theme()
-with st.sidebar:
-    theme_toggle()
-    st.markdown("---")   # séparateur
-    if st.button("🚪 Se déconnecter"):
-        # Supprimer l'utilisateur de la session
-        del st.session_state.user
-        # Rediriger vers la page de connexion
-        st.switch_page("pages/0_Login.py")
-# Vérification de l'authentification
+
+inject_css()
+
 if 'user' not in st.session_state:
     st.error("❌ Veuillez vous connecter pour accéder à cette page.")
     st.stop()
 
+if st.session_state.user['role'] not in ['admin', 'institution']:
+    st.error("🚫 Accès réservé aux administrateurs et aux institutionnels.")
+    st.stop()
+
+with st.sidebar:
+    theme_toggle()
+    st.markdown("---")
+    if st.button("🚪 Se déconnecter"):
+        del st.session_state.user
+        st.switch_page("pages/0_Login.py")
+
 st.markdown('<h1 class="main-header">🏛️ Tableau de bord institutionnel</h1>', unsafe_allow_html=True)
 
+# ... (reste du code inchangé)
 
 # Métriques (exemple factice, à adapter avec vos propres compteurs)
 col1, col2, col3 = st.columns(3)
@@ -33,9 +37,9 @@ with col3:
 st.markdown('<div class="card"><h3>🏆 Top 10 des commerçants (score de confiance)</h3>', unsafe_allow_html=True)
 top_commercants = get_top_commercants(limit=10)
 if top_commercants:
-    table_html = '<table class="data-table"><thead><tr><th>Rang</th><th>Nom</th><th>Score</th></tr></thead><tbody>'
-    for i, (nom, score) in enumerate(top_commercants, 1):
-        table_html += f'<tr><td>{i}</td><td>{nom}</td><td>{score}</td></tr>'
+    table_html = '<table class="data-table"><thead><tr><th>Rang</th><th>Nom</th><th>Score</th><th>Niveau</th></tr></thead><tbody>'
+    for i, (nom, score, niveau) in enumerate(top_commercants, 1):
+        table_html += f'<tr><td>{i}</td><td>{nom}</td><td>{score}</td><td>{niveau}</td></tr>'
     table_html += '</tbody></table>'
     st.markdown(table_html, unsafe_allow_html=True)
 else:

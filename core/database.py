@@ -5,23 +5,30 @@ from core.config import PROJECT_DIR
 from core.logger import logger
 from werkzeug.security import generate_password_hash, check_password_hash
 
-# Chemin unique vers la base de données
 DB_NAME = os.path.join(PROJECT_DIR, "zlecaf.db")
 
 def get_db_path():
-    """Retourne le chemin de la base de données (compatibilité)"""
     return DB_NAME
 
 def init_db():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    # Table des commerçants (existante)
+    
+    # Table commercants
     c.execute('''CREATE TABLE IF NOT EXISTS commercants (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         nom TEXT UNIQUE NOT NULL,
         score INTEGER DEFAULT 0
     )''')
-    # Table des certifications (existante)
+    
+    # Ajout colonne niveau (si elle n'existe pas)
+    try:
+        c.execute("ALTER TABLE commercants ADD COLUMN niveau TEXT DEFAULT 'Bronze'")
+        logger.info("Colonne 'niveau' ajoutée.")
+    except sqlite3.OperationalError:
+        logger.info("Colonne 'niveau' existe déjà.")
+    
+    # Table certifications
     c.execute('''CREATE TABLE IF NOT EXISTS certifications (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         commercant_id INTEGER,
@@ -34,16 +41,20 @@ def init_db():
         horodatage TEXT,
         FOREIGN KEY (commercant_id) REFERENCES commercants(id)
     )''')
-    # Table des utilisateurs (nouvelle)
+    
+    # Table users
     c.execute('''CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
         role TEXT NOT NULL DEFAULT 'commercant'
     )''')
-    init_default_users()
+    
     conn.commit()
     conn.close()
+    
+    # Création des utilisateurs par défaut
+    init_default_users()
 
 def add_user(username, password, role='commercant'):
     conn = sqlite3.connect(DB_NAME)
@@ -68,16 +79,17 @@ def verify_user(username, password):
     if row and check_password_hash(row[0], password):
         return {"username": username, "role": row[1]}
     return None
+
 def init_default_users():
-    """Crée les utilisateurs par défaut (admin et douane) s'ils n'existent pas."""
-    from core.database import verify_user, add_user  # éviter les imports circulaires
+    """Crée les comptes admin et douane s'ils n'existent pas."""
+    # On évite d'importer depuis le même module en appelant directement les fonctions
     if not verify_user('admin', 'admin123'):
         add_user('admin', 'admin123', 'admin')
     if not verify_user('douane', 'douane123'):
         add_user('douane', 'douane123', 'douane')
 
 def ajouter_commercant(nom):
-    conn = sqlite3.connect(DB_NAME)   # modifié
+    conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
     try:
         c.execute("INSERT OR IGNORE INTO commercants (nom) VALUES (?)", (nom,))
@@ -88,16 +100,15 @@ def ajouter_commercant(nom):
         conn.close()
 
 def incrementer_score(nom):
-    conn = sqlite3.connect(DB_NAME)   # modifié
+    conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
     c.execute("UPDATE commercants SET score = score + 1 WHERE nom = ?", (nom,))
     conn.commit()
     conn.close()
 
 def enregistrer_certification(nom_commercant, produit, grade, origine, destination, economie, hash_signature):
-    conn = sqlite3.connect(DB_NAME)   # modifié
+    conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    # Récupérer l'id du commerçant (ou le créer)
     c.execute("SELECT id FROM commercants WHERE nom = ?", (nom_commercant,))
     row = c.fetchone()
     if row is None:
@@ -111,16 +122,15 @@ def enregistrer_certification(nom_commercant, produit, grade, origine, destinati
               (commercant_id, produit, grade, origine, destination, economie, hash_signature, horodatage))
     conn.commit()
     conn.close()
-    # Incrémenter le score
     incrementer_score(nom_commercant)
 
 def get_top_commercants(limit=10):
-    conn = sqlite3.connect(DB_NAME)   # modifié
+    conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute("SELECT nom, score FROM commercants ORDER BY score DESC LIMIT ?", (limit,))
+    c.execute("SELECT nom, score, niveau FROM commercants ORDER BY score DESC LIMIT ?", (limit,))
     data = c.fetchall()
     conn.close()
-    return data
+    return data  # retourne (nom, score, niveau)
 
 def get_certifications():
     conn = sqlite3.connect(DB_NAME)
@@ -131,3 +141,10 @@ def get_certifications():
     data = c.fetchall()
     conn.close()
     return data
+def get_commercant_info(nom):
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute("SELECT score, niveau FROM commercants WHERE nom = ?", (nom,))
+    row = c.fetchone()
+    conn.close()
+    return {"score": row[0], "niveau": row[1]} if row else None

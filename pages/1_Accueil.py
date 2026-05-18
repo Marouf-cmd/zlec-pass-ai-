@@ -3,34 +3,31 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
-from core.style import inject_css
-from core.theme_utils import init_theme, theme_toggle
 from core.database import get_certifications, get_top_commercants
 from core.config import PAYS_ISO
 from fpdf import FPDF
 import tempfile
+from core.style import inject_css
+from core.theme_utils import theme_toggle
 
 inject_css()
-init_theme()
 
-# Vérification de l'authentification (optionnel : si vous voulez que le tableau de bord soit public, supprimez ce bloc)
+# Vérification de l'authentification
 if 'user' not in st.session_state:
     st.error("❌ Veuillez vous connecter pour accéder au tableau de bord.")
     st.stop()
 
-# Barre latérale avec déconnexion
+# Barre latérale avec déconnexion et thème
 with st.sidebar:
     theme_toggle()
     st.markdown("---")
     if st.button("🚪 Se déconnecter"):
-        # Vérifier si l'utilisateur est connecté avant de supprimer
-        if 'user' in st.session_state:
-            del st.session_state.user
-        # Rediriger vers la page de connexion
+        del st.session_state.user
         st.switch_page("pages/0_Login.py")
 
 st.markdown('<h1 class="main-header"><i class="fas fa-chart-line"></i> Tableau de bord ZLECAf</h1>', unsafe_allow_html=True)
 
+# ... (le reste du code inchangé)
 # Récupération des données
 certifications = get_certifications()
 top_commercants = get_top_commercants(10)
@@ -180,7 +177,7 @@ if certifications:
     st.markdown("---")
     st.subheader("🏅 Classement des commerçants")
     if top_commercants:
-        df_top = pd.DataFrame(top_commercants, columns=["Nom", "Score"])
+        df_top = pd.DataFrame(top_commercants, columns=["Nom", "Score", "Niveau"])
         st.dataframe(df_top, use_container_width=True, hide_index=True)
     else:
         st.info("Aucun commerçant enregistré.")

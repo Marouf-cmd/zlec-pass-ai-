@@ -1,32 +1,32 @@
 import streamlit as st
 from core.style import inject_css
-inject_css()
+from core.theme_utils import theme_toggle
 from core.config import PAYS_ZLECAF
 from core.image_analyzer import analyze_product
 from core.tariff_simulator import simuler_tarif
 from core.qr_utils import generer_qr
-from core.database import enregistrer_certification
+from core.database import enregistrer_certification, get_commercant_info
 from core.logger import logger
 from PIL import Image
 import tempfile
-from core.theme_utils import init_theme, theme_toggle
-init_theme()
 
-# Vérification de l'authentification
+inject_css()
+
 if 'user' not in st.session_state:
     st.error("❌ Veuillez vous connecter pour accéder à cette page.")
     st.stop()
 
 st.markdown('<h1 class="main-header"><i class="fas fa-box"></i> Espace Commerçant</h1>', unsafe_allow_html=True)
 st.markdown('<p class="subtitle">Certifiez votre produit en quelques clics</p>', unsafe_allow_html=True)
+
 with st.sidebar:
     theme_toggle()
-    st.markdown("---")   # séparateur
+    st.markdown("---")
     if st.button("🚪 Se déconnecter"):
-        # Supprimer l'utilisateur de la session
         del st.session_state.user
-        # Rediriger vers la page de connexion
         st.switch_page("pages/0_Login.py")
+
+# ... (reste du code inchangé)
 # Section produit (carte)
 st.markdown('<div class="card">', unsafe_allow_html=True)
 col_prod, col_info = st.columns([1, 2])
@@ -34,6 +34,12 @@ with col_prod:
     produit_type = st.selectbox("🌾 Type de produit", ["cafe", "cacao", "mais", "sorgho", "riz"])
 with col_info:
     nom_commercant = st.text_input("🏢 Nom du commerçant / exportateur")
+    if nom_commercant:
+        info = get_commercant_info(nom_commercant)
+        if info:
+            st.markdown(f'<div class="card" style="padding: 0.5rem 1rem; margin-top: 0.5rem;">🏅 **Niveau :** {info["niveau"]} (score {info["score"]})</div>', unsafe_allow_html=True)
+        else:
+            st.caption("🆕 Nouveau commerçant – débutera au niveau Bronze")
 
 col_org, col_dest = st.columns(2)
 with col_org:
@@ -42,7 +48,7 @@ with col_dest:
     destination = st.selectbox("🎯 Pays de destination", PAYS_ZLECAF)
 st.markdown('</div>', unsafe_allow_html=True)
 
-# Upload image
+# Upload de l'image
 st.markdown('<div class="card">', unsafe_allow_html=True)
 uploaded_file = st.file_uploader("📸 Prenez une photo du produit", type=["jpg", "jpeg", "png"])
 if uploaded_file is not None:
@@ -86,11 +92,13 @@ if "analyse" in st.session_state and st.session_state.analyse is not None:
 
     st.markdown(f'<div class="card"><h3>📊 Résultat de l’analyse</h3><p><strong>Produit :</strong> {produit}</p>{badge_html}</div>', unsafe_allow_html=True)
 
+    # Simulation tarifaire
     if "simulation" not in st.session_state or st.session_state.simulation is None:
         st.session_state.simulation = simuler_tarif(produit, grade, origine, destination)
     simulation = st.session_state.simulation
     st.markdown(f'<div class="card"><h3>💰 Simulation douanière</h3><p>{simulation}</p></div>', unsafe_allow_html=True)
 
+    # Génération du QR Code
     col_qr_btn, _ = st.columns([1, 3])
     with col_qr_btn:
         if st.button("📱 Générer le QR Code", use_container_width=True):
@@ -108,6 +116,7 @@ if "analyse" in st.session_state and st.session_state.analyse is not None:
                 enregistrer_certification(nom_commercant, produit, grade, origine, destination, simulation, "")
                 st.success(f"🏅 Score de confiance mis à jour pour {nom_commercant}")
 
+    # Affichage et téléchargement du QR
     if "qr_path" in st.session_state and st.session_state.qr_path is not None:
         st.markdown('<div class="card qr-container">', unsafe_allow_html=True)
         st.image(st.session_state.qr_path, caption="QR Code de certification", width=250)

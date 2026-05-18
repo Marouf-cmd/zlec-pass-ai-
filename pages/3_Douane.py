@@ -1,31 +1,31 @@
 import streamlit as st
 from core.style import inject_css
-inject_css()
+from core.theme_utils import theme_toggle
 from core.qr_utils import decode_qr_from_bytes, verifier_certificat
 from core.rag_engine import repondre_question
 from core.logger import logger
-from core.theme_utils import init_theme, theme_toggle
-init_theme()
-with st.sidebar:
-    theme_toggle()
-    st.markdown("---")   # séparateur
-    if st.button("🚪 Se déconnecter"):
-        # Supprimer l'utilisateur de la session
-        del st.session_state.user
-        # Rediriger vers la page de connexion
-        st.switch_page("pages/0_Login.py")
-# Vérification de l'authentification
+
+inject_css()
+
 if 'user' not in st.session_state:
     st.error("❌ Veuillez vous connecter pour accéder à cette page.")
     st.stop()
 
-# Vérification du rôle (douane ou admin)
 if st.session_state.user['role'] not in ['douane', 'admin']:
     st.error("🚫 Accès réservé aux agents de la douane et aux administrateurs.")
     st.stop()
 
+with st.sidebar:
+    theme_toggle()
+    st.markdown("---")
+    if st.button("🚪 Se déconnecter"):
+        del st.session_state.user
+        st.switch_page("pages/0_Login.py")
+
 st.markdown('<h1 class="main-header">🛃 Service Douane</h1>', unsafe_allow_html=True)
 st.markdown('<p class="subtitle">Vérifiez l’authenticité d’un certificat</p>', unsafe_allow_html=True)
+
+# ... (reste du code inchangé)
 
 st.markdown('<div class="card">', unsafe_allow_html=True)
 uploaded_qr = st.file_uploader("📷 Scannez le QR Code (image)", type=["png", "jpg", "jpeg"])
