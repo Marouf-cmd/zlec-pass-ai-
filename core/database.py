@@ -109,6 +109,7 @@ def incrementer_score(nom):
 def enregistrer_certification(nom_commercant, produit, grade, origine, destination, economie, hash_signature):
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
+    # Récupérer ou créer le commerçant
     c.execute("SELECT id FROM commercants WHERE nom = ?", (nom_commercant,))
     row = c.fetchone()
     if row is None:
@@ -122,8 +123,10 @@ def enregistrer_certification(nom_commercant, produit, grade, origine, destinati
               (commercant_id, produit, grade, origine, destination, economie, hash_signature, horodatage))
     conn.commit()
     conn.close()
+    # Incrémenter le score
     incrementer_score(nom_commercant)
-
+    # Mettre à jour le niveau
+    update_commercant_level(nom_commercant)
 def get_top_commercants(limit=10):
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
@@ -148,3 +151,21 @@ def get_commercant_info(nom):
     row = c.fetchone()
     conn.close()
     return {"score": row[0], "niveau": row[1]} if row else None
+def update_commercant_level(nom):
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute("SELECT score FROM commercants WHERE nom = ?", (nom,))
+    row = c.fetchone()
+    if row:
+        score = row[0]
+        if score >= 20:
+            niveau = "Platine"
+        elif score >= 10:
+            niveau = "Or"
+        elif score >= 5:
+            niveau = "Argent"
+        else:
+            niveau = "Bronze"
+        c.execute("UPDATE commercants SET niveau = ? WHERE nom = ?", (niveau, nom))
+        conn.commit()
+    conn.close()
